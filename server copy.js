@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const conexao = require("./db.js");
+const { match } = require("node:assert");
 
 const app = express();
 
@@ -24,60 +24,46 @@ app.get("/", (req, res) => {
     })
 })
 
-
-
-app.get("/alunos", async (req, res) => {
-    try {
-        const [resultado] = await conexao.query("SELECT * FROM alunos");
-        res.status(200).json(resultado);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            mensagem: "ERRO ao buscar alunos"
-        })
-    };
+app.get("/alunos", (req, res) => {
+    res.json(ALUNOS);
 })
 
-app.get("/alunos/:id", async (req, res) => {
+app.get("/alunos/:id", (req, res) => {
+    const id = Number(req.params.id);
 
-    try {
-        const id = Number(req.params.id);
-        const [resultado] = await conexao.query(`SELECT * FROM alunos where id =${id}`)
-        res.status(200).json(resultado);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            mensagem: "ERRO ao buscar alunos"
+    const aluno = ALUNOS.find(a => a.id === id);
+
+    if (!aluno) {
+        return res.status(404).json({
+            mensagem: "aluno não encontrado"
         })
-    };
+    }
 
-    // const aluno = ALUNOS.find(a => a.id === id);
-
-    // if (!aluno) {
-    //     return res.status(404).json({
-    //         mensagem: "aluno não encontrado"
-    //     })
-    // }
-
-    // res.status(200).json(aluno);
+    res.status(200).json(aluno);
 })
 
-app.post("/alunos/cadastrar", async (req, res) => {
+app.post("/alunos/cadastrar", (req, res) => {
     const { nome, curso } = req.body;
 
+    if (!nome || !curso) {
+        return res.status(400).json({ mensagem: "Nome e curso são obrigatorios" });
+    }
 
+    const novoId = ALUNOS.length > 0 ? Math.max(...ALUNOS.map(aluno => aluno.id)) + 1 : 1;
 
-  const sql =  `INSERT INTO alunos (nome, curso) VALUES (${nome}, ${curso}) `;
-  
-//   const [resultado] = await conexao.query(`INSERT INTO alunos (nome, curso) VALUES (?, ?)`, [nome, curso]);
-//   const [resultado] = await conexao.query(`INSERT INTO alunos (nome, curso) VALUES (${nome}, ${curso})`);
-  const [resultado] = await conexao.query(sql);
+    // const novoId = ALUNOS.length > 0 ? ALUNOS[ALUNOS.length - 1].id + 1 : 1;
 
-  res.status(201).json({
-    id: resultado.insertId,
-    nome,
-    curso
-  });
+    const novoAluno = {
+        id: novoId,
+        nome: nome,
+        curso: curso
+    };
+
+    ALUNOS.push(novoAluno);
+
+    res.status(201).json({
+        mensagem: "Aluno Cadastrado com sucesso"
+    })
 });
 
 app.put("/alunos/:id", (req, res) => {
